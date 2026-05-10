@@ -13,7 +13,7 @@ var FC = {
 // ============================
 // Global State
 // ============================
-var db = null, cls = [], cu = null, cfl = 'all', uns = null;
+var db = null, cls = [], cu = null, cfl = 'all', uns = null, unsPm = null;
 var isDk = true, cfCb = null, dtFlA = false, dtFlFld = 'created';
 var hideTm = false, srvOff = 0, autoInt = null, clkInt = null;
 

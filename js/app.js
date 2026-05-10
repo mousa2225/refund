@@ -15,11 +15,41 @@ function shApp() {
   var dtFlEl = document.getElementById('dtFl'); if (dtFlEl) dtFlEl.style.display = a ? 'block' : 'none';
   document.getElementById('srvClk').style.display = a ? 'flex' : 'none';
   document.getElementById('addBtn').style.display = gP().canAdd ? 'inline-flex' : 'none';
+
+  // App settings listener
   db.collection('settings').doc('appSettings').onSnapshot(function(d) {
     hideTm = d.exists ? (d.data().hideTimeInLogs || false) : false;
     rnT();
   }, function() {});
+
   if (a) { syncST(); sSC(); stAT(); }
+
+  // ============================
+  // Real-time Permissions Listener
+  // مستمع لحظي على بيانات المستخدم في Firestore
+  // أي تغيير في الصلاحيات من المدير يُطبَّق فوراً
+  // ============================
+  if (!a && cu && cu.id) {
+    if (unsPm) { unsPm(); unsPm = null; }
+    unsPm = db.collection('users').doc(cu.id).onSnapshot(function(doc) {
+      if (!doc.exists) return;
+      var d = doc.data();
+      // إذا أوقف المدير الحساب → اطرده فوراً
+      if (d.approved === false) {
+        setTimeout(function() {
+          doOut();
+          toast('تم إيقاف حسابك من قبل المدير', 'e');
+        }, 200);
+        return;
+      }
+      // تحديث الصلاحيات في الذاكرة فوراً
+      cu.permissions = d.permissions || { canAdd: true, canDelete: true, canEdit: true };
+      sessionStorage.setItem('cu', JSON.stringify(cu));
+      // تحديث زر الإضافة وإعادة رسم الجدول فوراً
+      document.getElementById('addBtn').style.display = gP().canAdd ? 'inline-flex' : 'none';
+      rnT();
+    }, function() {});
+  }
 }
 
 // ============================
@@ -138,6 +168,16 @@ function rnT() {
     if (cfl === 'prev' && !c.previouslyRefunded) return false;
     return true;
   });
+
+  // ============================
+  // بناء خريطة الأرقام المكررة عبر كل السجلات
+  // ============================
+  var dupPhones = {};
+  cls.forEach(function(c) {
+    var p = (c.phone || c.mobile || '').trim();
+    if (p) dupPhones[p] = (dupPhones[p] || 0) + 1;
+  });
+
   var hd = cls.length > 0;
   document.getElementById('empS').style.display  = hd ? 'none'  : 'block';
   document.getElementById('tbS').style.display   = hd ? 'block' : 'none';
@@ -149,7 +189,11 @@ function rnT() {
     return;
   }
   tb.innerHTML = fl.map(function(c, i) {
-    var st = getSt(c), ph = esc(en(c.phone||c.mobile||'—')), cd = fmtDtS(c.createdAt), rd = '';
+    var st = getSt(c);
+    var rawPh = (c.phone || c.mobile || '').trim();
+    var ph = esc(en(rawPh || '—'));
+    var isDup = rawPh && dupPhones[rawPh] > 1;
+    var cd = fmtDtS(c.createdAt), rd = '';
     if (st === 'refunded' && c.refundDate && c.refundDate.seconds)
       rd = '<span class="num" style="font-size:11px;color:#22c55e;font-weight:700">' + (ht ? fmtDt(c.refundDate) : fmtDtT(c.refundDate)) + '</span>';
     else rd = '<span style="color:var(--mt);font-size:12px">—</span>';
@@ -178,10 +222,18 @@ function rnT() {
       stHtml = '<td><button type="button" class="sb sb-click sb-p" onclick="apR(\''+c.id+'\')" title="اضغط للموافقة"><i class="'+STI[st]+' ml-0.5" style="font-size:9px"></i> '+STL[st]+'</button></td>';
     else
       stHtml = '<td><span class="sb '+STC[st]+'"><i class="'+STI[st]+' ml-0.5" style="font-size:9px"></i> '+STL[st]+'</span></td>';
+
+    // خلية الرقم — تُلوَّن بالأحمر مع شارة "مكرر" إذا تكرر الرقم في السجلات
+    var phCell = isDup
+      ? '<td><span class="num" dir="ltr" style="font-size:12px;color:#dc3545;font-weight:800">' + ph +
+          ' <span style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;font-size:8px;font-weight:800;background:rgba(220,53,69,.15);color:#dc3545;border:1px solid rgba(220,53,69,.3)">' +
+          '<i class="fa-solid fa-copy" style="font-size:7px"></i> مكرر</span></span></td>'
+      : '<td><span class="num" dir="ltr" style="font-size:12px">'+ph+'</span></td>';
+
     return '<tr class="rn '+(c.previouslyRefunded?'pr':'')+'">' +
       '<td class="font-bold text-[13px] num">'+(i+1)+'</td>' +
       '<td>'+esc(c.name)+(c.previouslyRefunded?' <span class="pb-t"><i class="fa-solid fa-triangle-exclamation"></i> سبق</span>':'')+'</td>' +
-      '<td><span class="num" dir="ltr" style="font-size:12px">'+ph+'</span></td>' +
+      phCell +
       '<td class="text-[11px] whitespace-nowrap" style="color:var(--dm)">'+esc(c.subscriptionDate||'—')+'</td>' +
       '<td class="text-[11px] whitespace-nowrap" style="color:var(--dm)">'+esc(c.packageType)+'</td>' +
       '<td class="num">'+pc+'</td><td class="num">'+dc+'</td><td class="num">'+cc+'</td>' +
@@ -275,23 +327,30 @@ function uPv() {
   var c = parseFloat(document.getElementById('fCo').value)||0;
   document.getElementById('pRf').textContent = cRf(p,d,c).toFixed(2);
 }
+
+// ============================
+// Template Parser
+// مبلغ الدفع يُعطى أولوية على أرقام نوع الباقة
+// ============================
 function prsTm() {
   var t = document.getElementById('tmI').value;
   if (!t.trim()) return;
-  var n='',ph='',pk='',dt='',rs='',co='',dr='',sub='';
+  var n='', ph='', pk='', dt='', rs='', co='', dr='', sub='', pamt='';
   t.split('\n').forEach(function(l) {
     l = l.trim(); if (!l) return;
     var idx = l.indexOf(':'); if (idx < 0) return;
-    var k = l.substring(0,idx).trim(), v = l.substring(idx+1).trim();
+    var k = l.substring(0, idx).trim(), v = l.substring(idx + 1).trim();
     var kn = k.replace(/[أإآ]/g,'ا').replace(/ة/g,'ه');
-    if (kn.includes('اسم') && kn.includes('عميل'))     { n  = v; }
-    else if (kn.includes('رقم') && !kn.includes('مرجع')){ ph = v; }
-    else if (kn.includes('مستهلك'))                      { co = v; }
-    else if (kn.includes('سبب') && !kn.includes('تعذر') && !kn.includes('تسليم')) { rs = v; }
-    else if (kn.includes('اشتراك'))                      { sub = v; }
-    else if (kn.includes('تاريخ'))                       { dt = v; }
-    else if (kn.includes('مده'))                         { dr = v; }
-    else if (kn.includes('باقه') || kn.includes('نوع')) { pk = v; }
+    if      (kn.includes('اسم') && kn.includes('عميل'))                                     { n   = v; }
+    else if (kn.includes('رقم') && !kn.includes('مرجع'))                                    { ph  = v; }
+    else if (kn.includes('مستهلك'))                                                          { co  = v; }
+    else if (kn.includes('سبب') && !kn.includes('تعذر') && !kn.includes('تسليم'))          { rs  = v; }
+    else if (kn.includes('اشتراك'))                                                          { sub = v; }
+    else if (kn.includes('تاريخ'))                                                           { dt  = v; }
+    else if (kn.includes('مده'))                                                             { dr  = v; }
+    else if (kn.includes('باقه') || kn.includes('نوع'))                                     { pk  = v; }
+    // مبلغ الدفع / المبلغ المدفوع — أي سطر يحتوي على "مبلغ" وليس "مسترد"
+    else if (kn.includes('مبلغ') && !kn.includes('مسترد') && !kn.includes('مسترجع'))       { pamt = v; }
   });
   if (n)   document.getElementById('fN').value   = n;
   if (ph)  document.getElementById('fPh').value  = ph;
@@ -301,19 +360,32 @@ function prsTm() {
   if (dr)  document.getElementById('fDr').value  = dr;
   if (sub) document.getElementById('fSub').value = sub;
   if (co) { var cv = parseFloat(en(co)); if (!isNaN(cv) && cv >= 0) document.getElementById('fCo').value = cv; }
+  // استخرج أيام الباقة وأيام مستهلكة من اسم الباقة (لكن ليس السعر)
   if (pk) {
     var nums = pk.match(/[\d.]+/g);
     if (nums && nums.length >= 3) {
-      document.getElementById('fPr').value = nums[nums.length-3];
-      if (!co) document.getElementById('fCo').value = nums[nums.length-2];
-      document.getElementById('fDy').value = nums[nums.length-1];
+      // السعر مؤقت من الباقة — سيُستبدل بـ mبلغ الدفع أدناه
+      document.getElementById('fPr').value = nums[nums.length - 3];
+      if (!co) document.getElementById('fCo').value = nums[nums.length - 2];
+      document.getElementById('fDy').value = nums[nums.length - 1];
     } else if (nums && nums.length >= 2) {
-      document.getElementById('fPr').value = nums[nums.length-2];
-      document.getElementById('fDy').value = nums[nums.length-1];
-    } else if (nums && nums.length === 1) { document.getElementById('fPr').value = nums[0]; }
+      document.getElementById('fPr').value = nums[nums.length - 2];
+      document.getElementById('fDy').value = nums[nums.length - 1];
+    } else if (nums && nums.length === 1) {
+      document.getElementById('fPr').value = nums[0];
+    }
+  }
+  // ← مبلغ الدفع يتغلب دائماً على الرقم المستخرج من اسم الباقة
+  if (pamt) {
+    var av = parseFloat(en(pamt).replace(/[^\d.]/g, ''));
+    if (!isNaN(av) && av > 0) document.getElementById('fPr').value = av;
   }
   uPv(); chkPD();
 }
+
+// ============================
+// Add Client
+// ============================
 function addC() {
   var n   = document.getElementById('fN').value.trim(),
       ph  = document.getElementById('fPh').value.trim(),
@@ -329,14 +401,25 @@ function addC() {
   if (!n)  { toast('أدخل اسم العميل','e'); return; }
   if (!ph) { toast('أدخل الرقم','e'); return; }
   if (!pk) { toast('أدخل نوع الباقة','e'); return; }
+
+  // ============================
+  // التحقق من سبق الاسترداد:
+  // إذا كان نفس الرقم موجود في السجلات وتم استرداده → previouslyRefunded = true
+  // ============================
+  var prevRef = cls.some(function(x) {
+    var xph = (x.phone || x.mobile || '').trim();
+    return xph && xph === ph && getSt(x) === 'refunded';
+  });
+
   db.collection('cancellations').add({
     name: n, phone: ph, mobile: ph, packageType: pk, cancelDate: dt,
     cancellationPeriod: dr, subscriptionDate: sub, packagePrice: pr,
     packageDays: dy, consumedDays: co, refundAmount: cRf(pr,dy,co),
     cancelReason: rs, notes: no, status: 'uploaded', refunded: false,
-    previouslyRefunded: false, addedByUsername: cu.username,
+    previouslyRefunded: prevRef,
+    addedByUsername: cu.username,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(function() { toast('تم إضافة العميل','s'); clCM(); })
+  }).then(function() { toast('تم إضافة العميل' + (prevRef ? ' ⚠ سبق الاسترداد' : ''),'s'); clCM(); })
     .catch(function(e) { toast('خطأ في الإضافة','e'); console.error(e); });
 }
 

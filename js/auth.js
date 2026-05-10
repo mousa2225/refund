@@ -123,9 +123,10 @@ function doFg() {
 // Logout
 // ============================
 function doOut() {
-  if (uns) uns();
+  if (uns)   { uns();   uns   = null; }
+  if (unsPm) { unsPm(); unsPm = null; }
   if (autoInt) { clearInterval(autoInt); autoInt = null; }
-  if (clkInt) { clearInterval(clkInt); clkInt = null; }
+  if (clkInt)  { clearInterval(clkInt);  clkInt  = null; }
   cu = null; cls = []; hideTm = false;
   sessionStorage.removeItem('cu');
   document.getElementById('app').style.display = 'none';

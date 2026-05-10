@@ -76,6 +76,21 @@ function fmtDtS(ts) {
 }
 
 // ============================
+// Parse free-text subscription date (e.g. "8 May", "8 May 2025")
+// ============================
+function parseSubDate(s) {
+  if (!s || !s.trim()) return null;
+  s = s.trim();
+  // Direct parse — works for "8 May 2025", "May 8 2025", etc.
+  var d = new Date(s);
+  if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
+  // Add current year for short forms like "8 May" or "1 Jan"
+  d = new Date(s + ' ' + new Date().getFullYear());
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+// ============================
 // UI Helpers
 // ============================
 function hAE() {
@@ -156,7 +171,7 @@ function sSC() {
 }
 
 // ============================
-// Date Filter
+// Date Filter UI
 // ============================
 function initDF() {
   var ms = document.getElementById('dtM'), ys = document.getElementById('dtMY'), yss = document.getElementById('dtY');
@@ -180,7 +195,10 @@ function cDT() {
 function aDF() {
   var tp = document.getElementById('dtType').value, inf = '', fldLbl = '';
   dtFlFld = document.getElementById('dtField').value;
-  fldLbl = dtFlFld === 'refund' ? ' (تاريخ الاسترداد)' : ' (تاريخ الإضافة)';
+  if      (dtFlFld === 'refund')       fldLbl = ' (تاريخ الاسترداد)';
+  else if (dtFlFld === 'subscription') fldLbl = ' (تاريخ الاشتراك)';
+  else                                 fldLbl = ' (تاريخ الإضافة)';
+
   if (tp === 'date') {
     var dv = document.getElementById('dtDate').value;
     if (!dv) { toast('اختر تاريخ','e'); return; }
@@ -194,7 +212,8 @@ function aDF() {
     inf = 'من ' + parseInt(a[2]) + ' ' + MA[parseInt(a[1])-1] + ' إلى ' + parseInt(b[2]) + ' ' + MA[parseInt(b[1])-1] + fldLbl;
   } else if (tp === 'month') {
     var m = parseInt(document.getElementById('dtM').value), y = parseInt(document.getElementById('dtMY').value);
-    dtFlA = 'month:' + y + '-' + m; inf = 'شهر: ' + MA[m] + ' ' + y + fldLbl;
+    dtFlA = 'month:' + y + '-' + m;
+    inf = 'شهر: ' + MA[m] + ' ' + y + fldLbl;
   } else {
     var yr = parseInt(document.getElementById('dtY').value);
     dtFlA = 'year:' + yr; inf = 'سنة: ' + yr + fldLbl;
@@ -216,11 +235,31 @@ function rDF() {
   document.querySelector('#flS .ft').classList.add('on');
   rnT();
 }
+
+// ============================
+// Date Filter Matcher — FIXED
+// 'month:' = 6 chars → substring(6) كان substring(7) وهذا هو سبب عطل فلتر الشهر
+// ============================
 function mDF(c) {
   if (!dtFlA) return true;
-  var ts = dtFlFld === 'refund' ? c.refundDate : c.createdAt;
-  if (!ts || !ts.seconds) return false;
-  var d = new Date(ts.seconds * 1000);
+
+  // Resolve date value based on selected field
+  var d;
+  if (dtFlFld === 'refund') {
+    var ts = c.refundDate;
+    if (!ts || !ts.seconds) return false;
+    d = new Date(ts.seconds * 1000);
+  } else if (dtFlFld === 'subscription') {
+    var pd = parseSubDate(c.subscriptionDate);
+    if (!pd) return false;
+    d = pd;
+  } else {
+    // 'created' (default)
+    var ts = c.createdAt;
+    if (!ts || !ts.seconds) return false;
+    d = new Date(ts.seconds * 1000);
+  }
+
   if (dtFlA.startsWith('date:')) {
     var p = dtFlA.substring(5).split('-');
     var f = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2])); f.setHours(0,0,0,0);
@@ -235,7 +274,7 @@ function mDF(c) {
     return d >= f2 && d <= t2;
   }
   if (dtFlA.startsWith('month:')) {
-    var mv = dtFlA.substring(7).split('-');
+    var mv = dtFlA.substring(6).split('-'); // FIXED: substring(6) not (7)
     return d.getFullYear() === parseInt(mv[0]) && d.getMonth() === parseInt(mv[1]);
   }
   if (dtFlA.startsWith('year:')) return d.getFullYear() === parseInt(dtFlA.substring(5));
