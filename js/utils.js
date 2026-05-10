@@ -76,16 +76,37 @@ function fmtDtS(ts) {
 }
 
 // ============================
-// Parse free-text subscription date (e.g. "8 May", "8 May 2025")
+// Date String Normalizer
+// يحوّل "8 May" أو "8 مايو" → "8 May 2025"
+// إذا السنة موجودة يبقيها كما هي
+// ============================
+var AR_MONTHS = {
+  'يناير':'January','فبراير':'February','مارس':'March','أبريل':'April',
+  'مايو':'May','يونيو':'June','يوليو':'July','أغسطس':'August',
+  'سبتمبر':'September','أكتوبر':'October','نوفمبر':'November','ديسمبر':'December'
+};
+function normDateStr(s) {
+  if (!s || !s.trim()) return s;
+  s = s.trim();
+  // استبدال أسماء الأشهر العربية بالإنجليزية
+  for (var ar in AR_MONTHS) {
+    s = s.replace(new RegExp(ar, 'g'), AR_MONTHS[ar]);
+  }
+  // إذا لا يوجد رقم مكوّن من 4 أرقام → أضف السنة الحالية
+  if (!/\d{4}/.test(s)) {
+    s = s + ' ' + new Date().getFullYear();
+  }
+  return s;
+}
+
+// ============================
+// Parse free-text date string to Date object
+// يعمل مع: "8 May 2025"، "8 May"، "8 مايو"، "8 مايو 2025"
 // ============================
 function parseSubDate(s) {
   if (!s || !s.trim()) return null;
-  s = s.trim();
-  // Direct parse — works for "8 May 2025", "May 8 2025", etc.
-  var d = new Date(s);
-  if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
-  // Add current year for short forms like "8 May" or "1 Jan"
-  d = new Date(s + ' ' + new Date().getFullYear());
+  var normalized = normDateStr(s);
+  var d = new Date(normalized);
   if (!isNaN(d.getTime())) return d;
   return null;
 }
@@ -166,7 +187,7 @@ function sSC() {
   clkInt = setInterval(function() {
     var e = document.getElementById('srvDisp'); if (!e) return;
     var n = gSN();
-    e.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'0');
+    e.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'00');
   }, 1000);
 }
 
@@ -183,6 +204,10 @@ function initDF() {
     var o1 = document.createElement('option'); o1.value = y; o1.textContent = y; ys.appendChild(o1);
     var o2 = document.createElement('option'); o2.value = y; o2.textContent = y; yss.appendChild(o2);
   }
+  // Set current year as default
+  var sel1 = document.getElementById('dtMY'), sel2 = document.getElementById('dtY');
+  if (sel1) sel1.value = cy;
+  if (sel2) sel2.value = cy;
 }
 function cDT() {
   var v = document.getElementById('dtType').value;
@@ -197,6 +222,7 @@ function aDF() {
   dtFlFld = document.getElementById('dtField').value;
   if      (dtFlFld === 'refund')       fldLbl = ' (تاريخ الاسترداد)';
   else if (dtFlFld === 'subscription') fldLbl = ' (تاريخ الاشتراك)';
+  else if (dtFlFld === 'cancel')       fldLbl = ' (تاريخ الإلغاء)';
   else                                 fldLbl = ' (تاريخ الإضافة)';
 
   if (tp === 'date') {
@@ -237,13 +263,13 @@ function rDF() {
 }
 
 // ============================
-// Date Filter Matcher — FIXED
-// 'month:' = 6 chars → substring(6) كان substring(7) وهذا هو سبب عطل فلتر الشهر
+// Date Filter Matcher
+// يدعم: تاريخ الإضافة، الاسترداد، الاشتراك، الإلغاء
+// الفلتر الشهري مُصلح: substring(6) وليس substring(7)
 // ============================
 function mDF(c) {
   if (!dtFlA) return true;
 
-  // Resolve date value based on selected field
   var d;
   if (dtFlFld === 'refund') {
     var ts = c.refundDate;
@@ -253,8 +279,11 @@ function mDF(c) {
     var pd = parseSubDate(c.subscriptionDate);
     if (!pd) return false;
     d = pd;
+  } else if (dtFlFld === 'cancel') {
+    var pd = parseSubDate(c.cancelDate);
+    if (!pd) return false;
+    d = pd;
   } else {
-    // 'created' (default)
     var ts = c.createdAt;
     if (!ts || !ts.seconds) return false;
     d = new Date(ts.seconds * 1000);
@@ -274,7 +303,7 @@ function mDF(c) {
     return d >= f2 && d <= t2;
   }
   if (dtFlA.startsWith('month:')) {
-    var mv = dtFlA.substring(6).split('-'); // FIXED: substring(6) not (7)
+    var mv = dtFlA.substring(6).split('-'); // FIXED: (6) not (7)
     return d.getFullYear() === parseInt(mv[0]) && d.getMonth() === parseInt(mv[1]);
   }
   if (dtFlA.startsWith('year:')) return d.getFullYear() === parseInt(dtFlA.substring(5));
