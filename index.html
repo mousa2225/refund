@@ -285,7 +285,7 @@
         <thead>
           <tr>
             <th>#</th><th>اسم العميل</th><th>الرقم</th><th>تاريخ الاشتراك</th>
-            <th>نوع الباقة</th><th>سعر الباقة</th><th>أيام الباقة</th><th>أيام مستهلكة</th>
+            <th>نوع الباقة</th><th>المبلغ المدفوع</th><th>أيام الباقة</th><th>أيام مستهلكة</th>
             <th>المبلغ المسترد</th><th>تاريخ الإلغاء</th><th>مدة الإلغاء</th><th>سبب الإلغاء</th>
             <th>تاريخ الإضافة</th><th>تاريخ الاسترداد</th><th>أضاف بواسطة</th>
             <th>الحالة</th><th>الرقم المرجعي</th><th>ملاحظات</th><th>إجراء</th>
@@ -336,10 +336,10 @@
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الاشتراك</label><input type="text" id="fSub" class="fi" placeholder="مثال: 1 Jan 2025"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">نوع الباقة</label><input type="text" id="fPk" class="fi" placeholder="غداء عمل-666-20"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الإلغاء</label><input type="text" id="fDt" class="fi" placeholder="5 May"></div>
-        <div class="sm:col-span-2"><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">مدة الإلغاء</label><input type="text" id="fDr" class="fi" placeholder="مثال: 48 ساعة"></div>
+        <div class="sm:col-span-2"><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">مدة الإلغاء</label><input type="text" id="fDr" class="fi" placeholder="مثال: 3 أشهر"></div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-2.5">
-        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">سعر الباقة</label><input type="number" id="fPr" class="fi" placeholder="666" step="0.01" dir="ltr" oninput="uPv()"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">المبلغ المدفوع</label><input type="number" id="fPr" class="fi" placeholder="666" step="0.01" dir="ltr" oninput="uPv()"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام الباقة</label><input type="number" id="fDy" class="fi" placeholder="20" dir="ltr" oninput="uPv()"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام مستهلكة</label><input type="number" id="fCo" class="fi" placeholder="8" dir="ltr" oninput="uPv()"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">سبب الإلغاء</label><input type="text" id="fRs" class="fi" placeholder="السبب..."></div>
