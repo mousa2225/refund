@@ -317,11 +317,11 @@ function uPv() {
 
 // ============================
 // Template Parser
-// القواعد:
-//   - المبلغ المدفوع: من "مبلغ الدفع" فقط
-//   - أيام مستهلكة: من "الايام المستهلكة" فقط
-//   - أيام الباقة: الرقم الأخير من نوع الباقة فقط
-//   - التواريخ تُحوَّل تلقائياً بإضافة السنة الحالية إن لم تكن موجودة
+// القواعد الصارمة:
+//   مبلغ الدفع     → fPr فقط (من "مبلغ الدفع")
+//   أيام مستهلكة  → fCo فقط (من "الايام المستهلكة")
+//   أيام الباقة   → fDy فقط الرقم الأخير من نوع الباقة
+//   تاريخ الاشتراك / الإلغاء → يُضاف السنة تلقائياً
 // ============================
 function prsTm() {
   var t = document.getElementById('tmI').value;
@@ -349,17 +349,17 @@ function prsTm() {
   if (rs)  document.getElementById('fRs').value  = rs;
   if (dr)  document.getElementById('fDr').value  = dr;
 
-  // تطبيع التواريخ: إضافة السنة الحالية تلقائياً لو ما موجودة
+  // ← تطبيع التواريخ فوراً: يُضاف السنة في حقل النموذج قبل الحفظ
   if (dt)  document.getElementById('fDt').value  = normDateStr(dt);
   if (sub) document.getElementById('fSub').value = normDateStr(sub);
 
-  // أيام مستهلكة: من حقل المستهلك فقط
+  // أيام مستهلكة من حقل المستهلك فقط
   if (co) {
     var cv = parseFloat(en(co));
     if (!isNaN(cv) && cv >= 0) document.getElementById('fCo').value = cv;
   }
 
-  // أيام الباقة: الرقم الأخير من نوع الباقة فقط (مو المبلغ)
+  // أيام الباقة: الرقم الأخير فقط من نوع الباقة
   if (pk) {
     var nums = pk.match(/[\d.]+/g);
     if (nums && nums.length >= 1) {
@@ -367,7 +367,7 @@ function prsTm() {
     }
   }
 
-  // المبلغ المدفوع: من "مبلغ الدفع" فقط — لا يُشل أبداً من نوع الباقة
+  // المبلغ المدفوع من "مبلغ الدفع" فقط — لا يُشل أبداً من نوع الباقة
   if (pamt) {
     var av = parseFloat(en(pamt).replace(/[^\d.]/g, ''));
     if (!isNaN(av) && av > 0) document.getElementById('fPr').value = av;
@@ -396,19 +396,19 @@ function addC() {
   var dy = parseFloat(dyStr) || 0;
   var co = parseFloat(coStr) || 0;
 
-  // التحقق من الحقول المطلوبة
-  if (!n)  { toast('أدخل اسم العميل','e'); return; }
-  if (!ph) { toast('أدخل الرقم','e'); return; }
-  if (!pk) { toast('أدخل نوع الباقة','e'); return; }
-  if (!prStr || pr <= 0) { toast('أدخل المبلغ المدفوع','e'); return; }
-  if (!dyStr || dy <= 0) { toast('أدخل أيام الباقة','e'); return; }
-  if (coStr === '') { toast('أدخل الأيام المستهلكة (اكتب 0 إن لم تُستهلك أيام)','e'); return; }
+  // التحقق من الحقول الإلزامية
+  if (!n)                   { toast('أدخل اسم العميل','e'); return; }
+  if (!ph)                  { toast('أدخل الرقم','e'); return; }
+  if (!pk)                  { toast('أدخل نوع الباقة','e'); return; }
+  if (!prStr || pr <= 0)    { toast('أدخل المبلغ المدفوع','e'); return; }
+  if (!dyStr || dy <= 0)    { toast('أدخل أيام الباقة','e'); return; }
+  if (coStr === '')          { toast('أدخل الأيام المستهلكة (0 إن لم تُستهلك أيام)','e'); return; }
 
-  // تطبيع التواريخ قبل الحفظ (يضيف السنة إن لم تكن موجودة)
+  // تطبيع التواريخ: إضافة السنة الحالية إن لم تكن موجودة
   var normSub = normDateStr(sub);
   var normDt  = normDateStr(dt);
 
-  // هل تم الاسترداد لنفس الرقم سابقاً؟
+  // هل تم استرداد نفس الرقم سابقاً؟
   var prevRef = cls.some(function(x) {
     var xph = (x.phone || x.mobile || '').trim();
     return xph && xph === ph && getSt(x) === 'refunded';

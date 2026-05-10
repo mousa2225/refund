@@ -76,38 +76,83 @@ function fmtDtS(ts) {
 }
 
 // ============================
-// Date String Normalizer
-// يحوّل "8 May" أو "8 مايو" → "8 May 2025"
-// إذا السنة موجودة يبقيها كما هي
+// Date String Normalizer & Parser
+//
+// يدعم جميع الأشكال:
+//   "8 May"       → "8 May 2026"  (يضيف السنة الحالية وقت الإدخال)
+//   "May 8"       → "May 8 2026"
+//   "8 مايو"      → "8 May 2026"
+//   "8 May 2025"  → لا يغير شيء
+//   "8-5-2026"    → DD-MM-YYYY
+//   "8/5/2026"    → DD/MM/YYYY
 // ============================
-var AR_MONTHS = {
-  'يناير':'January','فبراير':'February','مارس':'March','أبريل':'April',
-  'مايو':'May','يونيو':'June','يوليو':'July','أغسطس':'August',
-  'سبتمبر':'September','أكتوبر':'October','نوفمبر':'November','ديسمبر':'December'
+var AR_MONTHS_MAP = {
+  'يناير':'January','فبراير':'February','مارس':'March',
+  'أبريل':'April','ابريل':'April',
+  'مايو':'May','يونيو':'June','يوليو':'July',
+  'أغسطس':'August','اغسطس':'August',
+  'سبتمبر':'September','أكتوبر':'October','اكتوبر':'October',
+  'نوفمبر':'November','ديسمبر':'December','دیسمبر':'December'
 };
+var EN_MONTH_IDX = {
+  'january':0,'february':1,'march':2,'april':3,'may':4,'june':5,
+  'july':6,'august':7,'september':8,'october':9,'november':10,'december':11,
+  'jan':0,'feb':1,'mar':2,'apr':3,'jun':5,'jul':6,'aug':7,
+  'sep':8,'sept':8,'oct':9,'nov':10,'dec':11
+};
+
+// تحويل نص التاريخ: أشهر عربية → إنجليزية + إضافة السنة إن غابت
 function normDateStr(s) {
   if (!s || !s.trim()) return s;
   s = s.trim();
-  // استبدال أسماء الأشهر العربية بالإنجليزية
-  for (var ar in AR_MONTHS) {
-    s = s.replace(new RegExp(ar, 'g'), AR_MONTHS[ar]);
+  for (var ar in AR_MONTHS_MAP) {
+    if (s.indexOf(ar) !== -1)
+      s = s.replace(new RegExp(ar, 'g'), AR_MONTHS_MAP[ar]);
   }
-  // إذا لا يوجد رقم مكوّن من 4 أرقام → أضف السنة الحالية
+  // إضافة السنة الحالية وقت الإدخال إن لم تكن موجودة
   if (!/\d{4}/.test(s)) {
     s = s + ' ' + new Date().getFullYear();
   }
   return s;
 }
 
-// ============================
-// Parse free-text date string to Date object
-// يعمل مع: "8 May 2025"، "8 May"، "8 مايو"، "8 مايو 2025"
-// ============================
+// تحليل نص التاريخ → Date object
+// يعمل مع أي ترتيب وأي شكل
 function parseSubDate(s) {
   if (!s || !s.trim()) return null;
-  var normalized = normDateStr(s);
-  var d = new Date(normalized);
-  if (!isNaN(d.getTime())) return d;
+
+  // خطوة 1: تطبيع النص
+  var ns = normDateStr(s.trim());
+
+  // خطوة 2: نمط DD-MM-YYYY أو DD/MM/YYYY
+  var numMatch = ns.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (numMatch) {
+    var d = new Date(parseInt(numMatch[3]), parseInt(numMatch[2]) - 1, parseInt(numMatch[1]));
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // خطوة 3: token-based — يوم + اسم شهر + سنة بأي ترتيب
+  var tokens = ns.replace(/,/g, ' ').split(/[\s\-\/]+/).filter(Boolean);
+  var day = null, month = null, year = null;
+  tokens.forEach(function(tok) {
+    var tl = tok.toLowerCase();
+    if (/^\d{4}$/.test(tok)) {
+      year = parseInt(tok);
+    } else if (EN_MONTH_IDX[tl] !== undefined) {
+      month = EN_MONTH_IDX[tl];
+    } else if (/^\d{1,2}$/.test(tok) && day === null) {
+      day = parseInt(tok);
+    }
+  });
+  if (day !== null && month !== null && year !== null) {
+    var d2 = new Date(year, month, day);
+    if (!isNaN(d2.getTime())) return d2;
+  }
+
+  // خطوة 4: native parse كاحتياط
+  var d3 = new Date(ns);
+  if (!isNaN(d3.getTime())) return d3;
+
   return null;
 }
 
@@ -187,7 +232,7 @@ function sSC() {
   clkInt = setInterval(function() {
     var e = document.getElementById('srvDisp'); if (!e) return;
     var n = gSN();
-    e.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'00');
+    e.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'00') + ':' + String(n.getSeconds()).padStart(2,'0');
   }, 1000);
 }
 
@@ -204,7 +249,6 @@ function initDF() {
     var o1 = document.createElement('option'); o1.value = y; o1.textContent = y; ys.appendChild(o1);
     var o2 = document.createElement('option'); o2.value = y; o2.textContent = y; yss.appendChild(o2);
   }
-  // Set current year as default
   var sel1 = document.getElementById('dtMY'), sel2 = document.getElementById('dtY');
   if (sel1) sel1.value = cy;
   if (sel2) sel2.value = cy;
@@ -265,7 +309,7 @@ function rDF() {
 // ============================
 // Date Filter Matcher
 // يدعم: تاريخ الإضافة، الاسترداد، الاشتراك، الإلغاء
-// الفلتر الشهري مُصلح: substring(6) وليس substring(7)
+// فلتر الشهر مُصلح: substring(6)
 // ============================
 function mDF(c) {
   if (!dtFlA) return true;
