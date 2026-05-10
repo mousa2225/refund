@@ -320,80 +320,43 @@
       </button>
     </div>
     <div class="p-5">
-
-      <!-- ── نوع الاسترداد ── -->
-      <div class="flex gap-1.5 p-1 rounded-xl mb-4" style="background:var(--ib);border:1px solid var(--brd)">
-        <button type="button" id="rtB1" onclick="swRT('sub')" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all" style="background:rgba(0,212,170,.12);color:#00d4aa;border:1px solid rgba(0,212,170,.25);cursor:pointer">
-          <i class="fa-solid fa-rotate-left text-[9px] ml-1"></i> استرداد اشتراك العميل
-        </button>
-        <button type="button" id="rtB2" onclick="swRT('dir')" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all" style="background:transparent;color:var(--mt);border:1px solid transparent;cursor:pointer">
-          <i class="fa-solid fa-money-bill-wave text-[9px] ml-1"></i> استرداد مباشر
-        </button>
-      </div>
-
-      <!-- تحذير التكرار (مشترك) -->
       <div id="pW" class="wn mb-3"><i class="fa-solid fa-triangle-exclamation"></i><span id="pWT"></span></div>
-
-      <!-- الاسم والرقم (مشترك) -->
+      <div class="mb-4">
+        <label class="block text-xs font-bold mb-1" style="color:var(--dm)">
+          <i class="fa-solid fa-paste ml-1 text-accent"></i> الصق القالب
+        </label>
+        <textarea id="tmI" class="fi" placeholder="اسم العميل : ...&#10;الرقم : ..." oninput="prsTm()"></textarea>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <div class="flex-1 h-px" style="background:var(--brd)"></div>
+        <span class="text-[9px] font-bold" style="color:var(--mt)">أو تعبئة يدوية</span>
+        <div class="flex-1 h-px" style="background:var(--brd)"></div>
+      </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">اسم العميل</label><input type="text" id="fN" class="fi" placeholder="اسم العميل" oninput="chkPD()"></div>
         <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">الرقم</label><input type="text" id="fPh" class="fi" placeholder="05XXXXXXXX" oninput="chkPD()"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الاشتراك</label><input type="text" id="fSub" class="fi" placeholder="مثال: 1 Jan 2025"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">نوع الباقة</label><input type="text" id="fPk" class="fi" placeholder="غداء عمل-666-20"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الإلغاء</label><input type="text" id="fDt" class="fi" placeholder="5 May"></div>
+        <div class="sm:col-span-2"><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">مدة الإلغاء</label><input type="text" id="fDr" class="fi" placeholder="مثال: 3 أشهر"></div>
       </div>
-
-      <!-- ══════════ قسم: استرداد اشتراك العميل ══════════ -->
-      <div id="subSec">
-        <div class="mb-4">
-          <label class="block text-xs font-bold mb-1" style="color:var(--dm)">
-            <i class="fa-solid fa-paste ml-1 text-accent"></i> الصق القالب
-          </label>
-          <textarea id="tmI" class="fi" placeholder="اسم العميل : ...&#10;الرقم : ..." oninput="prsTm()"></textarea>
-        </div>
-        <div class="flex items-center gap-2 mb-4">
-          <div class="flex-1 h-px" style="background:var(--brd)"></div>
-          <span class="text-[9px] font-bold" style="color:var(--mt)">أو تعبئة يدوية</span>
-          <div class="flex-1 h-px" style="background:var(--brd)"></div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الاشتراك</label><input type="text" id="fSub" class="fi" placeholder="مثال: 1 Jan 2025"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">نوع الباقة</label><input type="text" id="fPk" class="fi" placeholder="غداء عمل-666-20"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">تاريخ الإلغاء</label><input type="text" id="fDt" class="fi" placeholder="5 May"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">مدة الإلغاء</label><input type="text" id="fDr" class="fi" placeholder="مثال: 3 أشهر"></div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-2.5">
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">المبلغ المدفوع</label><input type="number" id="fPr" class="fi" placeholder="666" step="0.01" dir="ltr" oninput="uPv()"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام الباقة</label><input type="number" id="fDy" class="fi" placeholder="20" dir="ltr" oninput="uPv()"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام مستهلكة</label><input type="number" id="fCo" class="fi" placeholder="8" dir="ltr" oninput="uPv()"></div>
-          <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">سبب الإلغاء</label><input type="text" id="fRs" class="fi" placeholder="السبب..."></div>
-        </div>
-        <div class="rounded-lg p-2.5 mb-3 flex items-center justify-between" style="background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.12)">
-          <div>
-            <div class="text-sm font-bold text-accent">المبلغ المسترد</div>
-            <div class="text-[9px]" style="color:var(--mt)">السعر - (سعر اليوم × المستهلكة)</div>
-          </div>
-          <div class="text-lg font-[900] text-accent num" id="pRf">0.00</div>
-        </div>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-2.5">
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">المبلغ المدفوع</label><input type="number" id="fPr" class="fi" placeholder="666" step="0.01" dir="ltr" oninput="uPv()"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام الباقة</label><input type="number" id="fDy" class="fi" placeholder="20" dir="ltr" oninput="uPv()"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">أيام مستهلكة</label><input type="number" id="fCo" class="fi" placeholder="8" dir="ltr" oninput="uPv()"></div>
+        <div><label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">سبب الإلغاء</label><input type="text" id="fRs" class="fi" placeholder="السبب..."></div>
       </div>
-
-      <!-- ══════════ قسم: استرداد مباشر ══════════ -->
-      <div id="dirSec" style="display:none">
-        <div class="mb-2.5">
-          <label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">سبب الاسترداد</label>
-          <input type="text" id="fDRs" class="fi" placeholder="مثال: تعديل باقة، أيام تعويض...">
-        </div>
-        <div class="rounded-lg p-3 mb-3" style="background:rgba(233,122,42,.05);border:1px solid rgba(233,122,42,.15)">
-          <label class="block text-[11px] font-bold mb-2" style="color:#e97a2a">
-            <i class="fa-solid fa-money-bill-wave ml-1 text-[10px]"></i> المبلغ المسترد
-          </label>
-          <input type="number" id="fDRA" class="fi num" placeholder="0.00" step="0.01" dir="ltr" style="font-size:22px;font-weight:900;color:#e97a2a;text-align:center;border-color:rgba(233,122,42,.3)">
-        </div>
-      </div>
-
-      <!-- ملاحظات (مشترك) -->
-      <div class="mb-3">
+      <div class="mb-2.5">
         <label class="block text-[11px] font-bold mb-1" style="color:var(--dm)">ملاحظات</label>
         <input type="text" id="fNo" class="fi" placeholder="ملاحظات...">
       </div>
-
+      <div class="rounded-lg p-2.5 mb-4 flex items-center justify-between" style="background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.12)">
+        <div>
+          <div class="text-sm font-bold text-accent">المبلغ المسترد</div>
+          <div class="text-[9px]" style="color:var(--mt)">السعر - (سعر اليوم × المستهلكة)</div>
+        </div>
+        <div class="text-lg font-[900] text-accent num" id="pRf">0.00</div>
+      </div>
       <div class="flex gap-2.5">
         <button type="button" onclick="addC()" class="bp flex-1 text-xs"><i class="fa-solid fa-check"></i> إضافة</button>
         <button type="button" onclick="clCM()" class="bs text-xs">إلغاء</button>
